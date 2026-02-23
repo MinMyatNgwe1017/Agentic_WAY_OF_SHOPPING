@@ -142,11 +142,13 @@ License
 https://choosealicense.com/
 Popular choices: MIT, Apache, GPL, BSD
 https://opensource.org/licenses
+
 README/Markdown
 https://en.wikipedia.org/wiki/README
 https://www.makeareadme.com/
 https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax
 https://github.github.com/gfm/
+
 Possible API sources:
 https://api.nasa.gov/
 https://pokeapi.co/
