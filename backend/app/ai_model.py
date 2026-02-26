@@ -14,7 +14,7 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import cloudscraper
-from langchain_google_genai import ChatGoogleGenerativeAI
+import time 
 
 import os 
 import dotenv
@@ -22,7 +22,7 @@ import dotenv
 dotenv.load_dotenv("../../.env")
 def shopping_wrapper(product,max=5):
     with DDGS() as ddgs:
-        results=ddgs.text(product,max=max)
+        results=ddgs.text(product,max_results=max)
     
     if len(results)<0:
         return "No result found"
@@ -33,24 +33,26 @@ def shopping_wrapper(product,max=5):
             {"Result":index,"Title":res.get('title'),"Link":res.get('href'),"Snippet":res.get('body')}
         )        
         
-    time.sleep(1)
+    time.sleep(0.1)
     return formatted_output
 
 
 db_url="sqlite:///../database/chat_memory.db"
 @tool
-def brave_search_tool(search_query:str)->str:
+def brave_search_tool(search_query:str,max_query)->str:
     """Searches the web for products and returns results 
         param:
-        search_query:str
+        search_query:str ->the thing that you want to search on internet
+        max_query:int ->what is the number of query you want to return more query more information less query number less information
     """
+    
     message=search_query
     if isinstance(message,dict):
         if "value" in message:
             message=message['value']
             
     
-    search=DuckDuckGoSearchRun(wrapper=DuckDuckGoSearchAPIWrapper(max_results=10))
+    search=DuckDuckGoSearchRun(wrapper=DuckDuckGoSearchAPIWrapper(max_results=max_query))
     result=search.invoke(message)
     print(len(result))
     return result
@@ -81,7 +83,7 @@ def retrun_not_possible(reason:str)->str:
     return reason
 
 tools=[brave_search_tool,ask_user,retrun_not_possible]
-model=ChatOllama(model="llama3.2",temperature=0,base_url="http://localhost:11434")
+model=ChatOllama(model="qwen3.5:35b",temperature=0,base_url="127.0.0.1:11434")
 
 
 
@@ -117,13 +119,8 @@ User: "budget running shoes for wide feet"
 ### NOW ANALYZE THIS USER INPUT AND TAKE THE APPROPRIATE ACTION OR ACTIONS:
 """
 
-gemini=ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0.2,
-    
-)
 
-llm_with_tools=gemini.bind_tools(tools)
+llm_with_tools=model.bind_tools(tools)
 extract_prompt=ChatPromptTemplate.from_messages(
     [
         ("system",extract_system_prompt),
@@ -147,15 +144,16 @@ def extract_and_think(user_input):
             for i in call:
             
                 if i['name']=="brave_search_tool":
-            
                     web_result.append(ToolMessage(brave_search_tool.func(**i['args']),tool_call_id=i['id']))
+                    
                 elif i['name']=="ask_user":
                     web_result.append(ToolMessage(ask_user.func(**i['args']),tool_call_id=i['id']))
                 elif i['name']=="retrun_not_possible":
-                    web_result.append(ToolMessage(retrun_not_possible.func(**i['args']),tool_call_id=i['id']))
+                    return retrun_not_possible.func(**i['args'])
+                    
         else:
             
-            return llm_with_tools.invoke(web_result).content
+            return llm_with_tools.invoke(web_result).content,web_result
         
         response=llm_with_tools.invoke(web_result)
         
@@ -170,14 +168,62 @@ scraper = cloudscraper.create_scraper(browser={
 #     global scraper
 #     result=scraper.get(link)
 #     soup=BeautifulSoup(result.text,"html.parser")
+
+
+
+
+filter_the_link_system_prompt="""
+You are an expert E-commerce Link Extractor. Your job is to provide exactly {number_of_links} shopping links for each product provided in the list.
+
+### RULES:
+1. OUTPUT FORMAT: You MUST return a valid Python Dictionary. 
+   - Keys = The exact product name from the list.
+   - Values = A list of exactly {number_of_links} unique, valid shopping URLs.
+2. NO CHAT: Return ONLY the dictionary. No introductory text.
+3. RELIABILITY: Prioritize major retailers (Amazon, Newegg, Best Buy, etc.).
+4. IF NOT FOUND: If you cannot find {number_of_links} links for a product, return as many as possible, but do not make up fake links.
+
+Example Output:
+{{
+  "Laptop A": ["url1", "url2", "url3"],
+  "Laptop B": ["url1", "url2", "url3"]
+}}
+"""
+from langchain_core.runnables import chain
+@chain
+def debug(text):
+    print(text)
+    return text
+filter_prompttemplate=ChatPromptTemplate([
+    ('system',filter_the_link_system_prompt  ),
+    ('user',"{input}")
+])
+
+qwen = ChatOllama(
+    model="qwen3.5:35b", 
+    temperature=0, 
+    base_url="http://127.0.0.1:11434",
+    num_ctx=8192
+)
+filter_chain=filter_prompttemplate|debug|qwen
+
 def search_information(user_input:str)->dict:
-    result=extract_and_think(user_input=user_input)
-    print(result)
-    # for i in result:
-    #     print(i)
-    #     s=shopping_wrapper(i,max=2)
-    #     for j in s:
-    #         link=j['Link']
-    #         print(link)
-search_information("i want laptop")
+    global filter_chain
+    number_of_link=2
+    result,think=extract_and_think(user_input=user_input)
+    try:
+        result=ast.literal_eval(result)
         
+        formatted_search={}
+        for item in result:
+            item_link=[]
+            overall=shopping_wrapper(item,max=2)
+            links_as_text = [res['Link'] for res in overall]
+            formatted_search[item]=links_as_text
+        print(formatted_search)
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        print(f"Original result: {result}")
+
+search_information("i want to buy laptop around 1500eru for gamming")
