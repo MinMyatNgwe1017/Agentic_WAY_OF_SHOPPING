@@ -11,7 +11,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS for React frontend (Sufiyan, this block connects the frontend with the back-end)
+# (Sufiyan, this block connects the frontend with the back-end)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],  # Vite default port
@@ -28,3 +28,12 @@ async def root():
 @app.get("/test")
 async def test():
     return {"message":"This is test"}
+
+class LoginInput(BaseModel):
+    email:str
+    password:str
+    
+@app.post("/auth/login")
+async def login(userdata:LoginInput):
+    
+    return {"message": "Login succesful","email":userdata.email}
