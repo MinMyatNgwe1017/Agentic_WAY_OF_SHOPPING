@@ -1,17 +1,18 @@
 import TextField from '@mui/material/TextField';
-import type { LoginInput } from '../types';
+import type { SignUpInput } from '../types';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import React, { useState } from 'react';
-import { login } from '../services/api';
+import { creat_account } from '../services/api';
 
 export default function Login() {
     const [email, setEmail] = useState('');
+    const [fullname, setFullName] = useState('');
     const [password, setPassword] = useState('');
     const handleSubmit = async () => {
-        const loginData: LoginInput = { email, password };
+        const signupData: SignUpInput = { fullname, email, password };
         try {
-            const response = await login(loginData);
+            const response = await creat_account(signupData);
             alert(`message: ${response.message}`);
         } catch (error) {
             console.error('Login failed:', error);
@@ -19,6 +20,7 @@ export default function Login() {
 
         setEmail('');
         setPassword('');
+        setFullName('');
     };
     return (
         <Stack
@@ -32,10 +34,11 @@ export default function Login() {
             noValidate
             autoComplete="on"
         >
+            <TextField id="name" label="Full Name" variant="standard" onChange={(e) => setFullName(e.target.value)} fullWidth color='primary' />
             <TextField id="email" label="Email" variant="standard" onChange={(e) => setEmail(e.target.value)} fullWidth color='primary' />
             <TextField id="password" label="Password" variant="standard" onChange={(e) => setPassword(e.target.value)} fullWidth color='primary' />
 
-            <Button variant="contained" onClick={handleSubmit}>Login</Button>
+            <Button variant="contained" onClick={handleSubmit}>Sign up</Button>
         </Stack>
     );
 }
