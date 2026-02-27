@@ -36,4 +36,15 @@ class LoginInput(BaseModel):
 @app.post("/auth/login")
 async def login(userdata:LoginInput):
     
-    return {"message": "Login succesful","email":userdata.email}
+    return {"message": "Login succesful back","email":userdata.email}
+
+class SignupInput(BaseModel):
+    fullname:str
+    email:str
+    password:str
+    
+@app.post("/auth/signup")
+async def login(userdata:SignupInput):
+    
+    return {"message": "Account created succesfullly back","email":userdata.email,"fullname":userdata.fullname,"password":userdata.password}
+

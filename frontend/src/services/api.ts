@@ -20,3 +20,8 @@ export const login = async (loginData: { email: string; password: string }) => {
     console.log('Login response:', response.data);
     return response.data;
 }
+export const creat_account = async (SignUpData: { fullname: string, email: string; password: string, }) => {
+    const response = await api.post('/auth/signup', SignUpData);
+    console.log('Login response:', response.data);
+    return response.data;
+}
