@@ -100,7 +100,6 @@
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain_community.tools import DuckDuckGoSearchResults,DuckDuckGoSearchRun
 
-
-result=DuckDuckGoSearchRun(wrapper=DuckDuckGoSearchAPIWrapper()).invoke("how is the president")
+result=DuckDuckGoSearchResults(wrapper=DuckDuckGoSearchAPIWrapper()).invoke("Lenvo i9 1500eru")
 print(len(result))
 print(result)
