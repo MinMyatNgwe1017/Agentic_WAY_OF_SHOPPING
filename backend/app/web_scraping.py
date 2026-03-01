@@ -6,6 +6,10 @@ import re
 import time
 
 
+"""
+newbuy is not possible to webscrap
+
+"""
 def web_scrap(link):
     with sync_playwright() as p:
         # browser=p.firefox.launch(headless=True)
@@ -37,10 +41,6 @@ def web_scrap(link):
                     #mark
                     image_url=page.locator('[data-testid="hero-image"]').get_attribute("src", timeout=1000)       
                 except:
-                    try:
-                        #bestbuy
-                        image_url=page.locator('.primary-image').get_attribute("src", timeout=1000)       
-                    except:
                         print("no Image found")
             
             
@@ -63,6 +63,8 @@ def web_scrap(link):
                     print("no found title")
                     print(e)
         
+        browser.close()
+        
         return {
             "image_url":image_url,
             "product_name":product_name,
@@ -71,9 +73,6 @@ def web_scrap(link):
             
                      
             
-
-print(web_scrap("https://www.bestbuy.com/product/hp-14-laptop-intel-processor-n150-2025-4gb-memory-128gb-ufs-natural-silver/JJGRPJV9C5"))
-        
         
             
 

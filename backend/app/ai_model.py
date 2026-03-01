@@ -18,7 +18,8 @@ import time
 from typing import List
 import os 
 import dotenv
-from web_scraping import scrap
+from web_scraping import web_scrap
+import json
 
 dotenv.load_dotenv("../../.env")
 
@@ -248,9 +249,15 @@ def search_information(user_input:str)->dict:
                         print(j['args'])
                         messages.append(ToolMessage(str(search_link.func(**j['args'])),tool_call_id=j['id']))
                 response=second_agent_model.invoke(messages)
-    
-            final_reult=second_agent_model.invoke(messages)        
-            print(final_reult.content)                
+                
+            links=json.loads(response.content)
+            
+            print("done one",i,links)
+            for i in links:
+                result=web_scrap(links[i])
+                print(i,result)
+                break
+
     except Exception as e:
         print(f"An error occurred: {e}")
     print(result)
