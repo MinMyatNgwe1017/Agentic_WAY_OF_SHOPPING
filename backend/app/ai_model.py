@@ -185,4 +185,6 @@ def search_information(user_input:str)->dict:
         print(f"An error occurred: {e}")
     print(result)
     
-search_information("Refurbished Apple MacBook Air M2 13 inch 8GB RAM 256GB SSD Silver")
+# search_information("Refurbished Apple MacBook Air M2 13 inch 8GB RAM 256GB SSD Silver")
+
+search_information("I want gaming laptop around 1500eur")
