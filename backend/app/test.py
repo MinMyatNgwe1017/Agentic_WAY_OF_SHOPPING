@@ -97,9 +97,20 @@
 # else:
 #     print(f"\n❌ Scraper failed: {result}")
 
-from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
-from langchain_community.tools import DuckDuckGoSearchResults,DuckDuckGoSearchRun
-
-result=DuckDuckGoSearchResults(wrapper=DuckDuckGoSearchAPIWrapper()).invoke("Lenvo i9 1500eru")
-print(len(result))
-print(result)
+import http.client
+import json
+import os
+import dotenv
+dotenv.load_dotenv("../.env")
+conn = http.client.HTTPSConnection("google.serper.dev")
+payload = json.dumps({
+  "q": "Razer Blade 14 RTX 3080 Ryzen 9 5900HX 32GB RAM 1TB SSD used refurbished"
+})
+headers = {
+  'X-API-KEY': os.getenv("SERPER_API_KEY"),
+  'Content-Type': 'application/json'
+}
+conn.request("POST", "/search", payload, headers)
+res = conn.getresponse()
+data = res.read()
+print(data.decode("utf-8"))

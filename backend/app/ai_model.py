@@ -18,6 +18,7 @@ import time
 from typing import List
 import os 
 import dotenv
+from web_scraping import scrap
 
 dotenv.load_dotenv("../../.env")
 
@@ -232,19 +233,26 @@ def search_information(user_input:str)->dict:
                 HumanMessage(i['search_query'])]
 
             response=second_agent.invoke({"user_input":i["search_query"]})
+            
             while response.tool_calls:
+            
                 messages.append(response)
+                
                 tool=response.tool_calls
+            
                 for j in tool:
+
                     if j['name']=="search_link":
+            
                         print("search_link is called")
+                        print(j['args'])
                         messages.append(ToolMessage(str(search_link.func(**j['args'])),tool_call_id=j['id']))
                 response=second_agent_model.invoke(messages)
-                
-            final_reult=second_agent_model.invoke(messages)
+    
+            final_reult=second_agent_model.invoke(messages)        
             print(final_reult.content)                
-        
     except Exception as e:
         print(f"An error occurred: {e}")
-
-search_information("i want to buy laptop aroudn 1500eur gaming")
+    print(result)
+    
+search_information("i want to buy laptop aroudn 1500eur gaming secondhand i want some high powerful laptop")
