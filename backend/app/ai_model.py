@@ -127,7 +127,7 @@ def extract_and_think(user_input):
 
                     web_result.append(ToolMessage(ask_user.func(**i['args']),tool_call_id=i['id']))
                 elif i['name']=="retrun_not_possible":
-                    return retrun_not_possible.func(**i['args'])
+                    return retrun_not_possible.func(**i['args']).content
         else:
             
             return llm_with_tools.invoke(web_result).content
@@ -183,6 +183,6 @@ def search_information(user_input:str)->dict:
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        print(result)
+    print(result)
     
 search_information("Refurbished Apple MacBook Air M2 13 inch 8GB RAM 256GB SSD Silver")

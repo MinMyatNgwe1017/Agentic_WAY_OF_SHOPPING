@@ -19,6 +19,8 @@ You have access to tools. Use them appropriately before giving your final answer
    - "name": The user-friendly display name containing the Brand, specific specs (CPU/RAM/GPU), and target price.
    - "search_query": The highly optimized string that a secondary agent will use to search the web for links. Include specific model numbers, crucial specs, and conditions (e.g., "Refurbished", "Used", "Open Box"). Do NOT include the price in this string, as it confuses search engines. 
    - NO NUMBERS: Do NOT include ranking numbers (like "1." or "2.") inside any strings. The ranking is implied by the order of the list.
+   "user_selection":if the user provide too specific product specific 
+  Remeber u must always return the list of dict unless u did not call the return not possible function
 
 ### EXAMPLES OF HOW TO BEHAVE:
 
