@@ -25,3 +25,8 @@ export const creat_account = async (SignUpData: { fullname: string, email: strin
     console.log('Login response:', response.data);
     return response.data;
 }
+
+export const chat = async (prompt: { prompt: string }) => {
+    const response = await api.post('/chat', prompt);
+    return response.data;
+}
