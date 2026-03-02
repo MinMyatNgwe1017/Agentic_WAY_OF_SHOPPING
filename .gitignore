@@ -8,3 +8,4 @@ __pycache__/
 .env.*
 
 ./requirement.txt
+.DS_Store
