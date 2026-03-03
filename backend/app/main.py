@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import uuid
 from datetime import datetime
-
+from ai_model import search_information
 app = FastAPI(
     title="API",
     description="A modern task management API built with FastAPI",
@@ -59,12 +59,22 @@ async def create_account(userdata: SignupInput):
         "password": userdata.password,
     }
 
-
+@app.post("/agent_thinking")
+async def show_thinking(think:dict):
+    print("api received",think)
+    return think
+    
 class ChatInput(BaseModel):
     prompt: str
 
 
+@app.post("/agent_asking")
+async def ask(question:str):
+    
+    return question
+
 @app.post("/chat")
 def send_chat(data: ChatInput):
-    print(data)
+    search_information(data.prompt)
+
     return {"msg": data.prompt}

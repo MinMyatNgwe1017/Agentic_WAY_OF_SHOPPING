@@ -21,6 +21,7 @@ import dotenv
 from web_scraping import web_scrap
 import json
 from prompts import extract_system_prompt,agent2_system_prompt
+import requests
 dotenv.load_dotenv("../../.env")
 
 db_url="sqlite:///../database/chat_memory.db"
@@ -167,11 +168,15 @@ def search_information(user_input:str)->dict:
                     
                     try: 
                         if tool_name == "search_link":
+                            
                             print(f" Agent 2 searching links: {tool_args}")
+                            requests.post(url="http://127.0.0.1:8000/agent_thinking",json=tool_args)
                             tool_result = str(search_link.func(**tool_args))
                             
                         elif tool_name == "brave_search_tool":
                             print(f"Agent 2 researching: {tool_args}")
+                            requests.post(url="http://127.0.0.1:8000/agent_thinking",json=tool_args)
+
                             tool_result = str(brave_search_tool.func(**tool_args))
                         
                         if not tool_result or tool_result.strip() == "":
@@ -202,5 +207,6 @@ def search_information(user_input:str)->dict:
         print(f"An error occurred: {e}")
     print(result)
 
-search_information("i pad for around 500eur for gamming secondhand")
+if __name__=="__main__":
+    search_information("i pad for around 500eur for gamming secondhand")
 # search_information("bmw 330Emsport steering wheel")
