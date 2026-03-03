@@ -95,8 +95,6 @@ def search_link(query:str,max:int)->List:
 tools=[brave_search_tool,search_link,ask_user,retrun_not_possible]  
 model=ChatOllama(model="qwen3.5:35b",temperature=0,base_url="127.0.0.1:11434")
 
-
-
 llm_with_tools=model.bind_tools(tools)
 extract_prompt=ChatPromptTemplate.from_messages(
     [
@@ -120,21 +118,21 @@ def extract_and_think(user_input):
             for i in call:
             
                 if i['name']=="brave_search_tool":
-                    print("brave_search_is_called")
+                    print("Duck Duck go search is called")
                     web_result.append(ToolMessage(brave_search_tool.func(**i['args']),tool_call_id=i['id']))
                     
                 elif i['name']=="ask_user":
 
                     web_result.append(ToolMessage(ask_user.func(**i['args']),tool_call_id=i['id']))
                 elif i['name']=="retrun_not_possible":
-                    return retrun_not_possible.func(**i['args']).content
+                    return retrun_not_possible.func(**i['args'])
         else:
             
             return llm_with_tools.invoke(web_result).content
         
         response=llm_with_tools.invoke(web_result)
 
-second_agent_model=model.bind_tools([search_link])
+second_agent_model=model.bind_tools([search_link,brave_search_tool])
 
 
 second_agent_prompttemplate=ChatPromptTemplate(
@@ -151,40 +149,58 @@ def search_information(user_input:str)->dict:
     result=extract_and_think(user_input=user_input)
     try:
         result=ast.literal_eval(result)
+
         for i in result:            
             messages=[
                 SystemMessage(agent2_system_prompt),
                 HumanMessage(i['search_query'])]
 
             response=second_agent.invoke({"user_input":i["search_query"]})
-            
             while response.tool_calls:
-            
                 messages.append(response)
+                tool = response.tool_calls
                 
-                tool=response.tool_calls
-            
                 for j in tool:
-
-                    if j['name']=="search_link":
-            
-                        print("search_link is called")
-                        print(j['args'])
-                        messages.append(ToolMessage(str(search_link.func(**j['args'])),tool_call_id=j['id']))
-                response=second_agent_model.invoke(messages)
+                    tool_name = j['name']
+                    tool_args = j['args']
+                    tool_id = j['id']
+                    
+                    try: 
+                        if tool_name == "search_link":
+                            print(f" Agent 2 searching links: {tool_args}")
+                            tool_result = str(search_link.func(**tool_args))
+                            
+                        elif tool_name == "brave_search_tool":
+                            print(f"Agent 2 researching: {tool_args}")
+                            tool_result = str(brave_search_tool.func(**tool_args))
+                        
+                        if not tool_result or tool_result.strip() == "":
+                            tool_result = "Error: No results found. Modify your query and try again."
+                            
+                    except Exception as e:
+                        print(f"Tool {tool_name} failed: {e}")
+                        tool_result = f"Search failed: {e}. Do not use these exact keywords again. Try a different store or broader terms."
+                    
+                    messages.append(ToolMessage(content=tool_result, tool_call_id=tool_id))
                 
-            links=json.loads(response.content)
+                response = second_agent.invoke(messages)            
             
+            links=json.loads(response.content)
+        
             print("done one",i,links)
             for i in links:
                 result=web_scrap(links[i])
-                print(i,result)
-                break
+                if None in list(result.values()):
+                    print(result)
 
+                    continue
+                else:
+                    print(i,result)
+                    break
+                    
     except Exception as e:
         print(f"An error occurred: {e}")
     print(result)
-    
-# search_information("Refurbished Apple MacBook Air M2 13 inch 8GB RAM 256GB SSD Silver")
 
-search_information("I want gaming laptop around 1500eur")
+search_information("i pad for around 500eur for gamming secondhand")
+# search_information("bmw 330Emsport steering wheel")
