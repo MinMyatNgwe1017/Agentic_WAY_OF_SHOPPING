@@ -4,15 +4,20 @@ import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import React, { useState } from 'react';
 import { login } from '../services/api';
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const navigate = useNavigate();
     const handleSubmit = async () => {
         const loginData: LoginInput = { email, password };
         try {
             const response = await login(loginData);
-            alert(`message: ${response.message}`);
+
+            if (response) {
+                navigate('/chat');
+            }
         } catch (error) {
             console.error('Login failed:', error);
         }
@@ -39,3 +44,4 @@ export default function Login() {
         </Stack>
     );
 }
+
