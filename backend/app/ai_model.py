@@ -1,3 +1,11 @@
+import subprocess
+import time 
+import os 
+import dotenv
+import json
+import requests
+from typing import List
+
 
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain_community.tools import DuckDuckGoSearchResults,DuckDuckGoSearchRun
@@ -10,21 +18,20 @@ from langchain_core.tools import tool
 from langchain.agents import create_agent
 import ast 
 from ddgs import DDGS
-import requests
 from bs4 import BeautifulSoup
-import time
 import cloudscraper
-import time 
-from typing import List
-import os 
-import dotenv
 from web_scraping import web_scrap
-import json
 from prompts import extract_system_prompt,agent2_system_prompt
-import requests
+from sqlalchemy import create_engine 
 dotenv.load_dotenv("../../.env")
 
-db_url="sqlite:///../database/chat_memory.db"
+import os
+from sqlalchemy import create_engine
+
+db_path = "/home/user/conversation.db"
+db_url = f"sqlite:///{db_path}"
+
+engine = create_engine(db_url, connect_args={"check_same_thread": False})
 @tool
 def brave_search_tool(search_query:str,max_query)->str:
     """Searches the web for products and returns results 
@@ -54,9 +61,9 @@ def ask_user(question:str)->str:
     
     """
     
-    
-    response=input(question)
-    return response
+    requests.post(url="http://127.0.0.1:8000/agent_asking",json={"question":question})
+
+    return question
 
 @tool
 def retrun_not_possible(reason:str)->str:
@@ -89,52 +96,97 @@ def search_link(query:str,max:int)->List:
         formatted_output.append(
             {"Result":index,"Title":res.get('title'),"Link":res.get('href')}
         )        
-        
+                
     time.sleep(0.1)
+    
     return formatted_output
 
 tools=[brave_search_tool,search_link,ask_user,retrun_not_possible]  
-model=ChatOllama(model="qwen3.5:35b",temperature=0,base_url="127.0.0.1:11434")
+
+model=ChatOllama(model="qwen3.5:35b",temperature=0,base_url="http://127.0.0.1:11434")
 
 llm_with_tools=model.bind_tools(tools)
+
 extract_prompt=ChatPromptTemplate.from_messages(
     [
         ("system",extract_system_prompt),
+        MessagesPlaceholder("history"),
         ("human","{input}")
     ]
 )
 extract_chain=extract_prompt|llm_with_tools
 
-def extract_and_think(user_input):
-    global extract_chain
-    web_result=[]
-    web_result.append(SystemMessage(extract_system_prompt))
-    web_result.append(HumanMessage(user_input))
-    response=extract_chain.invoke({"input":user_input})
+
+
+def get_session_history(session_id:int):
+    return SQLChatMessageHistory(
+        session_id=str(session_id),
+        connection=engine,
+        table_name="message_history"
+    )
     
+        
+agent_1=RunnableWithMessageHistory(
+    runnable=extract_chain,
+    get_session_history=get_session_history,
+    input_messages_key="input",
+    history_messages_key="history"
+)
+
+def extract_and_think(user_input,session_id):
+    global agent_1,llm_with_tools,extract_system_prompt,extract_chain
+    web_result=[]
+    history=get_session_history(session_id)
+    
+    
+    web_result.append(SystemMessage(extract_system_prompt))
+    web_result.extend(history.messages)
+    web_result.append(HumanMessage(user_input))
+    print("engter the function")
+    
+    
+    response=agent_1.invoke({"input":user_input},config={"configurable":{"session_id":session_id}})
+    print(response)
     while True:
         if response.tool_calls:
             web_result.append(response)
             call=response.tool_calls
             for i in call:
-            
+
+                tool_args=i['args']
+                print(tool_args)
+
                 if i['name']=="brave_search_tool":
+                    
                     print("Duck Duck go search is called")
+                    requests.post(url="http://127.0.0.1:8000/agent_thinking",json=tool_args)
+
                     web_result.append(ToolMessage(brave_search_tool.func(**i['args']),tool_call_id=i['id']))
                     
                 elif i['name']=="ask_user":
-
-                    web_result.append(ToolMessage(ask_user.func(**i['args']),tool_call_id=i['id']))
+                    print("yest it work")
+                    actual_question = i['args']['question']
+                    tool_msg = ToolMessage(
+                        
+                        content=actual_question,
+                    
+                        tool_call_id=i["id"]
+                    )
+                    history.add_message(tool_msg)     
+                    return "asking user input"
                 elif i['name']=="retrun_not_possible":
                     return retrun_not_possible.func(**i['args'])
+                
+            response=llm_with_tools.invoke(web_result)
         else:
+            llm_response=llm_with_tools.invoke(web_result).content
             
-            return llm_with_tools.invoke(web_result).content
+            history.add_message(AIMessage(llm_response))
+            return llm_response
         
-        response=llm_with_tools.invoke(web_result)
+
 
 second_agent_model=model.bind_tools([search_link,brave_search_tool])
-
 
 second_agent_prompttemplate=ChatPromptTemplate(
     [
@@ -143,10 +195,12 @@ second_agent_prompttemplate=ChatPromptTemplate(
     ]
 )
 
+
 second_agent=second_agent_prompttemplate|second_agent_model
+
+
 def search_information(user_input:str)->dict:
     global second_agent
-    number_of_link=2
     result=extract_and_think(user_input=user_input)
     try:
         result=ast.literal_eval(result)
@@ -207,6 +261,12 @@ def search_information(user_input:str)->dict:
         print(f"An error occurred: {e}")
     print(result)
 
+
+import asyncio
 if __name__=="__main__":
-    search_information("i pad for around 500eur for gamming secondhand")
+        print(extract_and_think("buget gamming headphone around 50eur",50))
+    
+    # model=ChatOllama(model="qwen3.5:35b",temperature=0,base_url="http://127.0.0.1:11434")
+
+    # print(model.invoke("hello"))
 # search_information("bmw 330Emsport steering wheel")

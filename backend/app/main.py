@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import uuid
 from datetime import datetime
-from ai_model import search_information
+from ai_model import search_information,extract_and_think
 app = FastAPI(
     title="API",
     description="A modern task management API built with FastAPI",
@@ -66,6 +66,7 @@ async def show_thinking(think:dict):
     
 class ChatInput(BaseModel):
     prompt: str
+    session_id:int=30
 
 
 @app.post("/agent_asking")
@@ -74,7 +75,9 @@ async def ask(question:str):
     return question
 
 @app.post("/chat")
-def send_chat(data: ChatInput):
-    search_information(data.prompt)
-
+async def send_chat(data: ChatInput):
+    extract_and_think(data.prompt,data.session_id)
+    
+    
+    print("in the fastapi")
     return {"msg": data.prompt}
