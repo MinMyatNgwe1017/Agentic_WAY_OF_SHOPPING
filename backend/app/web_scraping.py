@@ -83,6 +83,12 @@ def web_scrap(link):
             
             browser.close()
             
+            return {
+                "image_url":image_url,
+                "product_name":product_name,
+
+            }
+            
             
         except Exception as e:
             print(e)

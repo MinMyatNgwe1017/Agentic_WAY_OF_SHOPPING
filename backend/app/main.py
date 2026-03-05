@@ -5,6 +5,8 @@ from typing import List, Optional
 import uuid
 from datetime import datetime
 from ai_model import search_information,extract_and_think
+from fastapi.concurrency import run_in_threadpool
+
 app = FastAPI(
     title="API",
     description="A modern task management API built with FastAPI",
@@ -76,7 +78,7 @@ async def ask(question:str):
 
 @app.post("/chat")
 async def send_chat(data: ChatInput):
-    extract_and_think(data.prompt,data.session_id)
+    await run_in_threadpool(extract_and_think,data.prompt,data.session_id)
     
     
     print("in the fastapi")

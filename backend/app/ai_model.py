@@ -61,7 +61,6 @@ def ask_user(question:str)->str:
     
     """
     
-    requests.post(url="http://127.0.0.1:8000/agent_asking",json={"question":question})
 
     return question
 
@@ -159,7 +158,6 @@ def extract_and_think(user_input,session_id):
                 if i['name']=="brave_search_tool":
                     
                     print("Duck Duck go search is called")
-                    requests.post(url="http://127.0.0.1:8000/agent_thinking",json=tool_args)
 
                     web_result.append(ToolMessage(brave_search_tool.func(**i['args']),tool_call_id=i['id']))
                     
@@ -182,7 +180,7 @@ def extract_and_think(user_input,session_id):
             llm_response=llm_with_tools.invoke(web_result).content
             
             history.add_message(AIMessage(llm_response))
-            return llm_response
+            return search_information(llm_response)
         
 
 
@@ -199,9 +197,9 @@ second_agent_prompttemplate=ChatPromptTemplate(
 second_agent=second_agent_prompttemplate|second_agent_model
 
 
-def search_information(user_input:str)->dict:
+def search_information(llm_response:str)->dict:
     global second_agent
-    result=extract_and_think(user_input=user_input)
+    result=llm_response
     try:
         result=ast.literal_eval(result)
 
@@ -224,12 +222,10 @@ def search_information(user_input:str)->dict:
                         if tool_name == "search_link":
                             
                             print(f" Agent 2 searching links: {tool_args}")
-                            requests.post(url="http://127.0.0.1:8000/agent_thinking",json=tool_args)
                             tool_result = str(search_link.func(**tool_args))
                             
                         elif tool_name == "brave_search_tool":
                             print(f"Agent 2 researching: {tool_args}")
-                            requests.post(url="http://127.0.0.1:8000/agent_thinking",json=tool_args)
 
                             tool_result = str(brave_search_tool.func(**tool_args))
                         
