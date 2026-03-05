@@ -5,7 +5,7 @@ import dotenv
 import json
 import requests
 from typing import List
-
+import numpy as np
 
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain_community.tools import DuckDuckGoSearchResults,DuckDuckGoSearchRun
