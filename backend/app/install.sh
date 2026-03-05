@@ -3,6 +3,9 @@ sudo apt update
 python3 -m pip install --upgrade meson ninja
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
+
+apt install pkg-config libcairo2-dev
+
 pip install -r requirement.txt
 
 sudo apt-get remove -y nodejs npm
