@@ -118,3 +118,15 @@
 
 a={"a":3,"b":5}
 print(list(a.values()))
+
+
+import sqlite3 
+
+
+engine=sqlite3.Connection("/home/user/conversation.db")
+cursor=engine.cursor()
+
+print(cursor.execute("""
+select * from message_history
+Where session_id =10;
+""").fetchall())

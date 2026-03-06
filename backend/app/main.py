@@ -4,8 +4,11 @@ from pydantic import BaseModel
 from typing import List, Optional
 import uuid
 from datetime import datetime
-from ai_model import search_information,extract_and_think
 from fastapi.concurrency import run_in_threadpool
+from ai_model import stream_products
+
+import json
+from fastapi.responses import StreamingResponse
 
 app = FastAPI(
     title="API",
@@ -28,10 +31,10 @@ async def root():
     return {"message": "This is root", "version": "1.0.0"}
 
 
-# test
-@app.get("/test")
-async def test():
-    return {"message": "This is test"}
+# was test
+# @app.get("/test")
+# async def test():
+#     return {"message": "This is test"}
 
 
 class LoginInput(BaseModel):
@@ -61,25 +64,48 @@ async def create_account(userdata: SignupInput):
         "password": userdata.password,
     }
 
+
 @app.post("/agent_thinking")
-async def show_thinking(think:dict):
-    print("api received",think)
+async def show_thinking(think: dict):
+    print("api received", think)
     return think
-    
+
+
 class ChatInput(BaseModel):
     prompt: str
-    session_id:int=30
+    session_id: int = 30
 
 
 @app.post("/agent_asking")
-async def ask(question:str):
-    
+async def ask(question: str):
+
     return question
+
 
 @app.post("/chat")
 async def send_chat(data: ChatInput):
-    await run_in_threadpool(extract_and_think,data.prompt,data.session_id)
-    
-    
+
+    result = await run_in_threadpool(
+        extract_and_think,
+        data.prompt,
+        data.session_id
+    )
+
     print("in the fastapi")
-    return {"msg": data.prompt}
+
+    return result
+
+
+# streaming as search goes 1-1
+@app.post("/chat/stream")
+async def send_chat_stream(data: ChatInput):
+
+    async def event_generator():
+
+        for product in stream_products(data.prompt, data.session_id):
+            yield f"data: {json.dumps(product)}\n\n"
+
+        print("SENDING DONE EVENT")
+        yield f"data: {json.dumps({'status': 'done'})}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
