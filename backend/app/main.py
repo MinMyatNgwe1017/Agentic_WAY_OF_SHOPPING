@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
@@ -6,6 +6,14 @@ import uuid
 from datetime import datetime
 from fastapi.concurrency import run_in_threadpool
 from ai_model import stream_products
+from db import (
+    init_db,
+    create_user,
+    verify_user,
+    record_message,
+    record_recommendation,
+    get_or_create_session,
+)
 
 import json
 from fastapi.responses import StreamingResponse
@@ -15,6 +23,11 @@ app = FastAPI(
     description="A modern task management API built with FastAPI",
     version="1.0.0",
 )
+
+# initialize sqlite database on startup
+@app.on_event("startup")
+async def startup_event():
+    init_db()
 
 # (Sufiyan, this block connects the frontend with the back-end)
 app.add_middleware(
@@ -44,8 +57,14 @@ class LoginInput(BaseModel):
 
 @app.post("/auth/login")
 async def login(userdata: LoginInput):
-
-    return {"message": "Login succesful back", "email": userdata.email}
+    user = verify_user(userdata.email, userdata.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    return {
+        "message": "Login succesful back",
+        "email": userdata.email,
+        "user_id": user["id"],
+    }
 
 
 class SignupInput(BaseModel):
@@ -56,12 +75,15 @@ class SignupInput(BaseModel):
 
 @app.post("/auth/signup")
 async def create_account(userdata: SignupInput):
-
+    try:
+        user_id = create_user(userdata.fullname, userdata.email, userdata.password)
+    except Exception:
+        raise HTTPException(status_code=409, detail="Email already exists")
     return {
         "message": "Account created succesfullly back",
         "email": userdata.email,
         "fullname": userdata.fullname,
-        "password": userdata.password,
+        "user_id": user_id,
     }
 
 
@@ -85,6 +107,9 @@ async def ask(question: str):
 @app.post("/chat")
 async def send_chat(data: ChatInput):
 
+    get_or_create_session(data.session_id)
+    record_message(data.session_id, "user", data.prompt)
+
     result = await run_in_threadpool(
         extract_and_think,
         data.prompt,
@@ -102,7 +127,18 @@ async def send_chat_stream(data: ChatInput):
 
     async def event_generator():
 
+        get_or_create_session(data.session_id)
+        record_message(data.session_id, "user", data.prompt)
+
         for product in stream_products(data.prompt, data.session_id):
+            if isinstance(product, dict) and product.get("status") in {"need_user", "not_possible"}:
+                record_message(
+                    data.session_id,
+                    "assistant",
+                    json.dumps(product, ensure_ascii=True),
+                )
+            elif isinstance(product, dict):
+                record_recommendation(data.session_id, product)
             yield f"data: {json.dumps(product)}\n\n"
 
         print("SENDING DONE EVENT")

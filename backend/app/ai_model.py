@@ -25,12 +25,12 @@ from prompts import extract_system_prompt, agent2_system_prompt
 from sqlalchemy import create_engine
 dotenv.load_dotenv("../../.env")
 
-import os
+from pathlib import Path
 from sqlalchemy import create_engine
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-db_path = "/home/user/conversation.db"
+db_path = Path(__file__).resolve().parents[1] / "database" / "chat_memory.db"
 db_url = f"sqlite:///{db_path}"
 
 engine = create_engine(db_url, connect_args={"check_same_thread": False})
