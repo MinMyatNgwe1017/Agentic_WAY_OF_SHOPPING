@@ -1,131 +1,364 @@
+import subprocess
+import time
+import os
+import dotenv
+import json
+import requests
+from typing import List
+import numpy as np
 
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
-from langchain_community.tools import DuckDuckGoSearchResults,DuckDuckGoSearchRun
-from langchain_core.prompts import PromptTemplate,ChatPromptTemplate,MessagesPlaceholder
-from langchain_core.messages import HumanMessage,SystemMessage,AIMessage,ToolMessage
+from langchain_community.tools import DuckDuckGoSearchResults, DuckDuckGoSearchRun
+from langchain_core.prompts import PromptTemplate, ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain_ollama  import ChatOllama
+from langchain_ollama import ChatOllama
 from langchain_community.chat_message_histories import SQLChatMessageHistory
 from langchain_core.tools import tool
 from langchain.agents import create_agent
-import ast 
+import ast
 from ddgs import DDGS
-import requests
 from bs4 import BeautifulSoup
-import time
 import cloudscraper
+from web_scraping import web_scrap
+from prompts import extract_system_prompt, agent2_system_prompt
+from sqlalchemy import create_engine
+dotenv.load_dotenv("../../.env")
 
-def shopping_wrapper(product,max=5):
-    with DDGS() as ddgs:
-        results=ddgs.text(product,max=max)
-    
-    if len(results)<0:
-        return "No result found"
+import os
+from sqlalchemy import create_engine
 
-    formatted_output = []
-    for index, res in enumerate(results, 1):
-        formatted_output.append(
-            {"Result":index,"Title":res.get('title'),"Link":res.get('href'),"Snippet":res.get('body')}
-        )        
-        
-    time.sleep(1)
-    return formatted_output
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
+db_path = "/home/user/conversation.db"
+db_url = f"sqlite:///{db_path}"
 
-db_url="sqlite:///../database/chat_memory.db"
-@tool
-def brave_search_tool(message:str)->str:
-    """Searches the web for products and returns results 
-        param:
-        message:str
+engine = create_engine(db_url, connect_args={"check_same_thread": False})
+
+def safe_parse(text):
     """
-    if isinstance(message,dict):
+    Parse LLM output safely.
+    Handles JSON, python lists, code fences, and extra text around the list/dict.
+    """
+    if text is None:
+        raise ValueError("LLM output empty")
+
+    t = text.strip()
+
+    if t.startswith("```"):
+        t = t.strip("`")
+        if "\n" in t:
+            t = t.split("\n", 1)[1].strip()
+
+    try:
+        return json.loads(t)
+    except:
+        pass
+
+    try:
+        return ast.literal_eval(t)
+    except:
+        pass
+
+    # try extracting first list
+    start_list = t.find("[")
+    end_list = t.rfind("]")
+    if start_list != -1 and end_list != -1 and end_list > start_list:
+        candidate = t[start_list:end_list + 1]
+        try:
+            return json.loads(candidate)
+        except:
+            pass
+        try:
+            return ast.literal_eval(candidate)
+        except:
+            pass
+
+    # try extracting first dict
+    start_dict = t.find("{")
+    end_dict = t.rfind("}")
+    if start_dict != -1 and end_dict != -1 and end_dict > start_dict:
+        candidate = t[start_dict:end_dict + 1]
+        try:
+            return json.loads(candidate)
+        except:
+            pass
+        try:
+            return ast.literal_eval(candidate)
+        except:
+            pass
+
+    raise ValueError(f"Cannot parse LLM output: {t[:300]}")
+
+
+@tool
+def brave_search_tool(search_query: str, max_query) -> str:
+    """Searches the web for products and returns results
+        param:
+        search_query:str ->the thing that you want to search on internet
+        max_query:int ->what is the number of query you want to return more query more information less query number less information
+    """
+
+    message = search_query
+    if isinstance(message, dict):
         if "value" in message:
-            message=message['value']
-    search=DuckDuckGoSearchRun()
-    result=search.invoke(message)
+            message = message['value']
+
+    search = DuckDuckGoSearchRun(wrapper=DuckDuckGoSearchAPIWrapper(max_results=max_query))
+    result = search.invoke(message)
+    print(len(result))
     return result
 
 
+@tool
+def ask_user(question: str) -> str:
+    """
+    use this if u think the user information is not enough
 
-tools=[brave_search_tool]
-model=ChatOllama(model="llama3.2",temperature=0)
+    param:
+    question:str
+
+    """
+
+    return question
 
 
+@tool
+def retrun_not_possible(reason: str) -> str:
+    """
+    call this function based on the the information that user ask does not found for
+    eg find the iphone around 10eur not possible thing return the reason
 
-extract_system_prompt="""
-You are an expert product analyst and hardware specialist. Your job is to take a user's general shopping request, analyze their budget and use-case, and deduce the exact product specifications that would fit their needs.
+    param:
+    reason:str
+    """
+    return reason
 
-### CORE RULES:
-1. NO GENERIC SEARCHES: Do not output generic questions like "best student laptop under 800". You must output concrete, specific product configurations.
-2. DEDUCE THE SPECS: Use your knowledge to determine what CPU, RAM, brand, or model series fits the user's exact budget and needs.
-3. STRICT FORMATTING: Output ONLY a valid Python list of strings. Do not include any conversational filler (e.g., do not say "Here are the specs").
-4. BE CONCISE: Each string in the list must contain the Brand, specific specs (like CPU/RAM), and the target price.
-### EXAMPLES:
-Return results only in one list no extra text
-User: "laptop for student around 800eur"
-Output: ["Lenovo ThinkPad E14 Ryzen 7 16GB RAM 512GB SSD 800 EUR", "MacBook Air M1 8GB RAM 256GB SSD 800 EUR", "Asus Vivobook Intel i5 16GB RAM 800 EUR"]
 
-User: "good beginner mirrorless camera for wildlife 1000eur"
-Output: ["Canon EOS R50 APS-C 24.2MP with 55-210mm lens 1000 EUR", "Sony a6400 24.2MP with 55-210mm lens 1000 EUR"]
+@tool
+def search_link(query: str, max: int) -> List:
 
-User: "gaming pc for 1200 euros"
-Output: ["Desktop AMD Ryzen 5 7600X RTX 4060 Ti 32GB DDR5 1200 EUR", "Prebuilt Lenovo Legion Core i7 RTX 4060 16GB RAM 1200 EUR"]
+    """
+    use this one to get the link of the the query
+    it search on the internet and return the list of the link
 
-User: "budget running shoes for wide feet"
-Output: ["New Balance Fresh Foam X 880v13 Wide EE", "Brooks Ghost 15 Wide 2E", "Asics Gel-Cumulus 25 Wide"]
+    param:
+    query:str:the one that you want to search on internet and also want to get link
+    max:int:the number of query return that you want from internet along with link of the pages
+    """
+    with DDGS() as ddgs:
+        results = list(ddgs.text(query, max_results=max))
+    if len(results) < 0:
+        return "No result found"
+    formatted_output = []
+    for index, res in enumerate(results, 1):
+        formatted_output.append(
+            {"Result": index, "Title": res.get('title'), "Link": res.get('href')}
+        )
 
-### NOW ANALYZE THIS USER INPUT AND OUTPUT THE SPECIFICATION LIST:
+    time.sleep(0.1)
 
-"""
-llm_with_tools=model.bind_tools(tools)
-extract_prompt=ChatPromptTemplate.from_messages(
+    return formatted_output
+
+
+tools = [brave_search_tool, search_link, ask_user, retrun_not_possible]
+
+model = ChatOllama(model="qwen3.5:35b", temperature=0, base_url="http://127.0.0.1:11434")
+
+llm_with_tools = model.bind_tools(tools)
+
+extract_prompt = ChatPromptTemplate.from_messages(
     [
-        ("system",extract_system_prompt),
-        ("human","{input}")
+        ("system", extract_system_prompt),
+        MessagesPlaceholder("history"),
+        ("human", "{input}")
     ]
 )
-extract_chain=extract_prompt|llm_with_tools
+extract_chain = extract_prompt | llm_with_tools
 
-def extract_and_think(user_input):
-    global extract_chain
-    web_result=[]
+
+def get_session_history(session_id: int):
+    return SQLChatMessageHistory(
+        session_id=str(session_id),
+        connection=engine,
+        table_name="message_history"
+    )
+
+
+agent_1 = RunnableWithMessageHistory(
+    runnable=extract_chain,
+    get_session_history=get_session_history,
+    input_messages_key="input",
+    history_messages_key="history"
+)
+
+
+
+second_agent_model = model.bind_tools([search_link, brave_search_tool])
+
+second_agent_prompttemplate = ChatPromptTemplate(
+    [
+        ("system", agent2_system_prompt),
+        ("user", "{user_input}")
+    ]
+)
+
+second_agent = second_agent_prompttemplate | second_agent_model
+
+def stream_products(user_input, session_id):
+
+    global agent_1, llm_with_tools
+
+    history = get_session_history(session_id)
+
+    web_result = []
+
     web_result.append(SystemMessage(extract_system_prompt))
+    web_result.extend(history.messages)
     web_result.append(HumanMessage(user_input))
-    response=extract_chain.invoke({"input":user_input})
-    
+
+    response = agent_1.invoke(
+        {"input": user_input},
+        config={"configurable": {"session_id": session_id}}
+    )
+
     while True:
         if response.tool_calls:
-            call=response.tool_calls
+            web_result.append(response)
+            call = response.tool_calls
+
             for i in call:
-            
-                if i['name']=="brave_search_tool":
-            
-                    web_result.append(ToolMessage(brave_search_tool.func(**i['args']),tool_call_id=i['id']))
+                tool_args = i["args"]
+                print("STREAM TOOL CALL:", i["name"], tool_args)
+
+                if i["name"] == "brave_search_tool":
+                    web_result.append(
+
+                        ToolMessage(
+                            
+                            brave_search_tool.func(**i["args"]),
+                            tool_call_id=i["id"]
+                        
+                        )
+                    )
+
+
+                elif i["name"] == "ask_user":
+                    actual_question = i["args"]["question"]
+                    yield {
+                        "status": "need_user",
+                        "question": actual_question
+                    }
+                    return
+
+                elif i["name"] == "retrun_not_possible":
+                    yield {
+                        "status": "not_possible",
+                        "reason": retrun_not_possible.func(**i["args"])
+                    }
+                    return
+
+            response = llm_with_tools.invoke(web_result)
+
         else:
+            llm_response=llm_with_tools.invoke(web_result).content
             
-            return llm_with_tools.invoke(web_result).content
-        
-        response=llm_with_tools.invoke(web_result)
-        
-soup=BeautifulSoup()
-scraper = cloudscraper.create_scraper(browser={
-        'browser': 'chrome',
-        'platform': 'windows',
-        'desktop': True
-    })
-# def webscrap(link):
-#     global scraper
-#     result=scraper.get(link)
-#     soup=BeautifulSoup(result.text,"html.parser")
-def search_information(user_input:str)->dict:
-    result=ast.literal_eval(extract_and_think(user_input=user_input))
-    print(result)
-    # for i in result:
-    #     s=shopping_wrapper(i,max=2)
-    #     for j in s:
-    #         link=j['Link']
-    #         webscrap(link)
-    
-search_information("my phone got stolen, new one under 100 euro")
-        
+
+
+            history.add_message(AIMessage(llm_response))
+
+            print("RAW STREAM LLM RESPONSE:", repr(llm_response))
+            break
+
+
+    try:
+        queries = safe_parse(llm_response)
+
+    except Exception as e:
+        yield {
+            "error": str(e),
+            "raw_output": llm_response
+        }
+        return
+
+    def process_product(product):
+
+        try:
+            messages = [
+                SystemMessage(agent2_system_prompt),
+                HumanMessage(product["search_query"])
+            ]
+
+            response = second_agent.invoke({"user_input": product["search_query"]})
+
+            while response.tool_calls:
+                messages.append(response)
+                tool_calls = response.tool_calls
+
+                for j in tool_calls:
+                    tool_name = j["name"]
+                    tool_args = j["args"]
+                    tool_id = j["id"]
+
+                    try:
+                        if tool_name == "search_link":
+                            print(f"Agent 2 searching links: {tool_args}")
+                            tool_result = str(search_link.func(**tool_args))
+
+                        elif tool_name == "brave_search_tool":
+                            print(f"Agent 2 researching: {tool_args}")
+                            tool_result = str(brave_search_tool.func(**tool_args))
+
+                        else:
+                            tool_result = "Unsupported tool"
+
+                        if not tool_result or tool_result.strip() == "":
+                            tool_result = "Error: No results found."
+
+                    except Exception as e:
+                        print(f"Tool {tool_name} failed: {e}")
+                        tool_result = f"Search failed: {e}"
+
+                    messages.append(
+                        ToolMessage(content=tool_result, tool_call_id=tool_id)
+                    )
+
+                response = second_agent.invoke(messages)
+
+            print("RAW SECOND AGENT RESPONSE:", repr(response.content))
+
+            links = safe_parse(response.content)
+
+            for i in links:
+                scraped = web_scrap(links[i])
+
+                if None in list(scraped.values()):
+                    continue
+
+                return scraped
+
+        except Exception as e:
+            return {"error": str(e)}
+
+    with ThreadPoolExecutor(max_workers=4) as executor:
+
+        futures = [executor.submit(process_product, p) for p in queries]
+
+        for future in as_completed(futures):
+
+            result = future.result()
+
+            if result:
+                yield result
+    print("STREAM PRODUCTS FINISHED")
+
+
+import asyncio
+if __name__ == "__main__":
+    for i in stream_products("give me secondhand phone around 100eur", 10):
+        print(i)
+
+    # model=ChatOllama(model="qwen3.5:35b",temperature=0,base_url="http://127.0.0.1:11434")
+
+    # print(model.invoke("hello"))
+# search_information("bmw 330Emsport steering wheel")
