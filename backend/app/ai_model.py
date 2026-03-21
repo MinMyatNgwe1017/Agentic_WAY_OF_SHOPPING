@@ -161,7 +161,7 @@ def search_link(query: str, max: int) -> List:
     return formatted_output
 
 
-tools = [brave_search_tool, search_link, ask_user, retrun_not_possible]
+tools = [brave_search_tool, ask_user, retrun_not_possible]
 
 model = ChatOllama(model="qwen3.5:35b", temperature=0, base_url="http://127.0.0.1:11434")
 
