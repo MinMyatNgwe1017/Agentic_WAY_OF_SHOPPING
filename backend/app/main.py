@@ -1,10 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional
-import uuid
-from datetime import datetime
-from fastapi.concurrency import run_in_threadpool
+from typing import Optional
 from ai_model import stream_products
 from db import (
     init_db,
@@ -44,12 +41,6 @@ async def root():
     return {"message": "This is root", "version": "1.0.0"}
 
 
-# was test
-# @app.get("/test")
-# async def test():
-#     return {"message": "This is test"}
-
-
 class LoginInput(BaseModel):
     email: str
     password: str
@@ -64,6 +55,7 @@ async def login(userdata: LoginInput):
         "message": "Login succesful back",
         "email": userdata.email,
         "user_id": user["id"],
+        "fullname": user["full_name"],
     }
 
 
@@ -95,30 +87,17 @@ async def show_thinking(think: dict):
 
 class ChatInput(BaseModel):
     prompt: str
-    session_id: int = 30
+    session_id: int
 
 
 @app.post("/agent_asking")
 async def ask(question: str):
-
     return question
 
 
 @app.post("/chat")
 async def send_chat(data: ChatInput):
-
-    get_or_create_session(data.session_id)
-    record_message(data.session_id, "user", data.prompt)
-
-    result = await run_in_threadpool(
-        extract_and_think,
-        data.prompt,
-        data.session_id
-    )
-
-    print("in the fastapi")
-
-    return result
+    return {"message": "Use /chat/stream endpoint for chat responses"}
 
 
 # streaming as search goes 1-1
@@ -126,7 +105,6 @@ async def send_chat(data: ChatInput):
 async def send_chat_stream(data: ChatInput):
 
     async def event_generator():
-
         get_or_create_session(data.session_id)
         record_message(data.session_id, "user", data.prompt)
 
@@ -139,6 +117,7 @@ async def send_chat_stream(data: ChatInput):
                 )
             elif isinstance(product, dict):
                 record_recommendation(data.session_id, product)
+
             yield f"data: {json.dumps(product)}\n\n"
 
         print("SENDING DONE EVENT")

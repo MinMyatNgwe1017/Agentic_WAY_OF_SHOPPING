@@ -1,7 +1,8 @@
 import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
 import { Button, Typography } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 type Product = {
   product_name?: string;
@@ -16,6 +17,14 @@ export default function Chat() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) {
+      navigate("/");
+    }
+  }, [navigate]);
 
   const handleStreamPart = (part: string) => {
     const lines = part.split("\n");
@@ -49,7 +58,13 @@ export default function Chat() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    // reset for new search
+    const userId = localStorage.getItem("user_id");
+
+    if (!userId) {
+      navigate("/");
+      return;
+    }
+
     setProducts([]);
     setError(null);
     setLoading(true);
@@ -59,12 +74,10 @@ export default function Chat() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // If you later add auth token, add it here:
-          // "Authorization": `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({
           prompt: message,
-          session_id: 30, // later you can set this dynamically per user
+          session_id: Number(userId),
         }),
       });
 
@@ -83,7 +96,6 @@ export default function Chat() {
         if (value) {
           buffer += decoder.decode(value, { stream: true });
 
-          // SSE messages are separated by a blank line "\n\n"
           const parts = buffer.split("\n\n");
           buffer = parts.pop() || "";
 
@@ -97,7 +109,6 @@ export default function Chat() {
         }
       }
 
-      // process any remaining final chunk
       if (buffer.trim()) {
         handleStreamPart(buffer);
       }
@@ -110,8 +121,24 @@ export default function Chat() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("user_id");
+    localStorage.removeItem("email");
+    localStorage.removeItem("fullname");
+    navigate("/");
+  };
+
   return (
     <div>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: 900, margin: "16px auto 0", padding: 2 }}>
+        <Typography variant="h6">
+          {localStorage.getItem("fullname") || "User"}
+        </Typography>
+        <Button variant="outlined" onClick={handleLogout}>
+          Logout
+        </Button>
+      </Box>
+
       <Box
         component="form"
         noValidate
