@@ -115,6 +115,8 @@ async def send_chat_stream(data: ChatInput):
                     "assistant",
                     json.dumps(product, ensure_ascii=True),
                 )
+            elif isinstance(product, dict) and product.get("type") == "status":
+                pass
             elif isinstance(product, dict):
                 record_recommendation(data.session_id, product)
 

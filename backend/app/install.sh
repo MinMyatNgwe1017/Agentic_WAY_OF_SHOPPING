@@ -1,18 +1,38 @@
 sudo apt upgrade
 sudo apt update
-python3 -m pip install --upgrade meson ninja
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+sudo apt install curl
+sudo apt install python3.10-venv
+python3 -m venv .venv
+source ./.venv/bin/activate
+pip install -r requirements.txt
+playwright install 
+playwright install-deps                     
+
+playwright install firefox
+cd ../../frontend
+
+sudo apt install npm
+npm run install
+
+sudo apt remove nodejs -y
+sudo apt purge nodejs -y
+sudo apt autoremove -y
+
+sudo rm -rf /usr/lib/node_modules
+sudo rm -rf ~/.npm
+sudo rm -rf ~/.node-gyp
+
+
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
 source ~/.bashrc
+nvm install node
 
-apt install pkg-config libcairo2-dev
+sudo rm -rf /usr/local/bin/node
+sudo rm -rf /usr/local/bin/npm
+sudo rm -rf /usr/local/lib/node_modules
 
-pip install -r requirement.txt
+curl -fsSL https://ollama.com/install.sh | sh
 
-sudo apt-get remove -y nodejs npm
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-
-sudo apt-get install -y nodejs
-
-sudo dpkg --configure -a
-sudo apt autoremove
-sudo apt --fix-broken install
+# ollama serve
+# ollama run qwen3.5:35b

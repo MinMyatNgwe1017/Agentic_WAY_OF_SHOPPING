@@ -23,6 +23,7 @@ import cloudscraper
 from web_scraping import web_scrap
 from prompts import extract_system_prompt, agent2_system_prompt
 from sqlalchemy import create_engine
+import os 
 dotenv.load_dotenv("../../.env")
 
 from pathlib import Path
@@ -30,7 +31,7 @@ from sqlalchemy import create_engine
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-db_path = Path(__file__).resolve().parents[1] / "database" / "chat_memory.db"
+db_path = os.path.expanduser("~/chat_memory.db")
 db_url = f"sqlite:///{db_path}"
 
 engine = create_engine(db_url, connect_args={"check_same_thread": False})
@@ -217,6 +218,12 @@ def stream_products(user_input, session_id):
     web_result.extend(history.messages)
     web_result.append(HumanMessage(user_input))
 
+    # added: initial live status
+    yield {
+        "type": "status",
+        "message": "Analyzing your request..."
+    }
+
     response = agent_1.invoke(
         {"input": user_input},
         config={"configurable": {"session_id": session_id}}
@@ -232,6 +239,12 @@ def stream_products(user_input, session_id):
                 print("STREAM TOOL CALL:", i["name"], tool_args)
 
                 if i["name"] == "brave_search_tool":
+                    # added: stream live search log
+                    yield {
+                        "type": "status",
+                        "message": f"Searching: {tool_args.get('search_query', '')}"
+                    }
+
                     web_result.append(
 
                         ToolMessage(
@@ -261,9 +274,8 @@ def stream_products(user_input, session_id):
             response = llm_with_tools.invoke(web_result)
 
         else:
-            llm_response=llm_with_tools.invoke(web_result).content
+            llm_response = response.content
             
-
 
             history.add_message(AIMessage(llm_response))
 
@@ -280,6 +292,12 @@ def stream_products(user_input, session_id):
             "raw_output": llm_response
         }
         return
+
+    # added: status after parsing candidate products
+    yield {
+        "type": "status",
+        "message": f"Found {len(queries)} products, checking stores and details..."
+    }
 
     def process_product(product):
 
@@ -342,7 +360,14 @@ def stream_products(user_input, session_id):
 
     with ThreadPoolExecutor(max_workers=4) as executor:
 
-        futures = [executor.submit(process_product, p) for p in queries]
+        # added: log each product being checked
+        futures = []
+        for p in queries:
+            yield {
+                "type": "status",
+                "message": f"Checking product: {p.get('name', p.get('search_query', 'Unknown product'))}"
+            }
+            futures.append(executor.submit(process_product, p))
 
         for future in as_completed(futures):
 

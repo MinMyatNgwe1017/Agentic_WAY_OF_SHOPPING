@@ -5,8 +5,8 @@ from hashlib import pbkdf2_hmac
 from pathlib import Path
 import secrets
 
-
-DB_PATH = Path(__file__).resolve().parents[1] / "database" / "app.db"
+import os
+DB_PATH = os.path.expanduser("~/app.db")
 
 
 def _utc_now() -> str:
@@ -14,7 +14,7 @@ def _utc_now() -> str:
 
 
 def _get_conn() -> sqlite3.Connection:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    # DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")

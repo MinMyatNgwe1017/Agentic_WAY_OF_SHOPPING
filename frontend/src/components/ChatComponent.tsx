@@ -10,11 +10,16 @@ type Product = {
   link?: string;
   error?: string;
   status?: string;
+  type?: string;
+  message?: string;
+  question?: string;
 };
 
 export default function Chat() {
   const [message, setMessage] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [followUpQuestion, setFollowUpQuestion] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -42,6 +47,24 @@ export default function Chat() {
             continue;
           }
 
+          if (obj.status === "need_user") {
+            setFollowUpQuestion(obj.question || "Please provide more details.");
+            setLogs((prev) => [...prev, "Agent needs more information."]);
+            setLoading(false);
+            return;
+          }
+
+          if (obj.status === "not_possible") {
+            setError(obj.error || "This request is not possible.");
+            setLoading(false);
+            return;
+          }
+
+          if (obj.type === "status") {
+            setLogs((prev) => [...prev, obj.message || "Working..."]);
+            return;
+          }
+
           if (obj.error) {
             setError(obj.error);
             setLoading(false);
@@ -66,6 +89,8 @@ export default function Chat() {
     }
 
     setProducts([]);
+    setLogs([]);
+    setFollowUpQuestion(null);
     setError(null);
     setLoading(true);
 
@@ -159,7 +184,7 @@ export default function Chat() {
           id="outlined-textarea"
           placeholder="Search a category… e.g. gaming headphones under 50 eur"
           multiline
-          sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}
+          sx={{ display: "flex", justifyContent: "center", alignItems: "center" , background: "#fff", color: "#141313"}}
           fullWidth
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -170,6 +195,30 @@ export default function Chat() {
       </Box>
 
       <Box sx={{ maxWidth: 900, margin: "24px auto", padding: 2 }}>
+        {followUpQuestion && (
+          <Box sx={{ mb: 2, p: 2, border: "1px solid #f0c36d", borderRadius: 2, backgroundColor: "#181715" }}>
+            <Typography sx={{ fontWeight: 600, mb: 1 }}>
+              Agent needs more information
+            </Typography>
+            <Typography>
+              {followUpQuestion}
+            </Typography>
+          </Box>
+        )}
+
+        {logs.length > 0 && (
+          <Box sx={{ mb: 2, p: 2, border: "1px solid #e0e0e0", borderRadius: 2, backgroundColor: "#0a0808" }}>
+            <Typography sx={{ fontWeight: 600, mb: 1 }}>
+              Live activity
+            </Typography>
+            {logs.map((log, i) => (
+              <Typography key={i} variant="body2" sx={{ mb: 0.5 }}>
+                • {log}
+              </Typography>
+            ))}
+          </Box>
+        )}
+
         {error && (
           <Typography sx={{ mb: 2 }} color="error">
             {error}
