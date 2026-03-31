@@ -114,6 +114,7 @@
 # res = conn.getresponse()
 # data = res.read()
 # print(data.decode("utf-8"))
+# this is a test
 
 
 a={"a":3,"b":5}
@@ -127,6 +128,7 @@ engine=sqlite3.Connection("/home/user/conversation.db")
 cursor=engine.cursor()
 
 print(cursor.execute("""
+                     
 select * from message_history
 Where session_id =10;
 """).fetchall())
