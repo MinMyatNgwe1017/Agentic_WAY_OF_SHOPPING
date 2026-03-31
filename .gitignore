@@ -9,3 +9,8 @@ __pycache__/
 
 ./requirement.txt
 .DS_Store
+node-v18.20.2-linux-x64.tar.xz
+node-v20.19.0-linux-x64.tar.xz
+node-v20.19.0-linux-x64.tar.xz.1
+ollama
+Modelfile
