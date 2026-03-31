@@ -4,6 +4,7 @@ from datetime import datetime
 from hashlib import pbkdf2_hmac
 from pathlib import Path
 import secrets
+import re
 
 import os
 DB_PATH = os.path.expanduser("~/app.db")
@@ -19,6 +20,50 @@ def _get_conn() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
+
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _require_non_empty(value: str, field: str) -> str:
+    cleaned = value.strip()
+    if not cleaned:
+        raise ValueError(f"{field} must not be empty")
+    return cleaned
+
+
+def _validate_email(email: str) -> str:
+    cleaned = _require_non_empty(email, "email").lower()
+    if not _EMAIL_RE.match(cleaned):
+        raise ValueError("email must be a valid address")
+    return cleaned
+
+
+def _validate_password(password: str) -> str:
+    if not password:
+        raise ValueError("password must not be empty")
+    return password
+
+
+def _validate_session_id(session_id: int) -> int:
+    if not isinstance(session_id, int) or session_id <= 0:
+        raise ValueError("session_id must be a positive integer")
+    return session_id
+
+
+def _validate_user_id(user_id: int | None) -> int | None:
+    if user_id is None:
+        return None
+    if not isinstance(user_id, int) or user_id <= 0:
+        raise ValueError("user_id must be a positive integer")
+    return user_id
+
+
+def _validate_role(role: str) -> str:
+    cleaned = _require_non_empty(role, "role")
+    if cleaned not in {"user", "assistant", "system"}:
+        raise ValueError("role must be one of: user, assistant, system")
+    return cleaned
 
 
 def init_db() -> None:
@@ -77,24 +122,28 @@ def _hash_password(password: str, salt_hex: str) -> str:
 
 
 def create_user(full_name: str, email: str, password: str) -> int:
+    full_name_clean = _require_non_empty(full_name, "full_name")
+    email_clean = _validate_email(email)
+    password_clean = _validate_password(password)
     salt_hex = secrets.token_hex(16)
-    password_hash = _hash_password(password, salt_hex)
+    password_hash = _hash_password(password_clean, salt_hex)
     with _get_conn() as conn:
         cursor = conn.execute(
             """
             INSERT INTO users (full_name, email, password_hash, password_salt, created_at)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (full_name, email.lower().strip(), password_hash, salt_hex, _utc_now()),
+            (full_name_clean, email_clean, password_hash, salt_hex, _utc_now()),
         )
         return int(cursor.lastrowid)
 
 
 def get_user_by_email(email: str):
+    email_clean = _validate_email(email)
     with _get_conn() as conn:
         cursor = conn.execute(
             "SELECT * FROM users WHERE email = ?",
-            (email.lower().strip(),),
+            (email_clean,),
         )
         return cursor.fetchone()
 
@@ -110,6 +159,8 @@ def verify_user(email: str, password: str):
 
 
 def get_or_create_session(session_id: int, user_id: int | None = None) -> None:
+    session_id_clean = _validate_session_id(session_id)
+    user_id_clean = _validate_user_id(user_id)
     with _get_conn() as conn:
         conn.execute(
             """
@@ -118,29 +169,35 @@ def get_or_create_session(session_id: int, user_id: int | None = None) -> None:
             ON CONFLICT(session_id) DO UPDATE SET
                 user_id = COALESCE(excluded.user_id, chat_sessions.user_id)
             """,
-            (session_id, user_id, _utc_now()),
+            (session_id_clean, user_id_clean, _utc_now()),
         )
 
 
 def record_message(session_id: int, role: str, content: str) -> None:
-    get_or_create_session(session_id)
+    session_id_clean = _validate_session_id(session_id)
+    role_clean = _validate_role(role)
+    content_clean = _require_non_empty(content, "content")
+    get_or_create_session(session_id_clean)
     with _get_conn() as conn:
         conn.execute(
             """
             INSERT INTO chat_messages (session_id, role, content, created_at)
             VALUES (?, ?, ?, ?)
             """,
-            (session_id, role, content, _utc_now()),
+            (session_id_clean, role_clean, content_clean, _utc_now()),
         )
 
 
 def record_recommendation(session_id: int, data: dict) -> None:
-    get_or_create_session(session_id)
+    session_id_clean = _validate_session_id(session_id)
+    if not isinstance(data, dict):
+        raise ValueError("data must be a dict")
+    get_or_create_session(session_id_clean)
     with _get_conn() as conn:
         conn.execute(
             """
             INSERT INTO recommendations (session_id, data_json, created_at)
             VALUES (?, ?, ?)
             """,
-            (session_id, json.dumps(data, ensure_ascii=True), _utc_now()),
+            (session_id_clean, json.dumps(data, ensure_ascii=True), _utc_now()),
         )
