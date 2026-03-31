@@ -42,6 +42,8 @@ def _validate_email(email: str) -> str:
 def _validate_password(password: str) -> str:
     if not password:
         raise ValueError("password must not be empty")
+    if len(password) < 8:
+        raise ValueError("password must be at least 8 characters long")
     return password
 
 
