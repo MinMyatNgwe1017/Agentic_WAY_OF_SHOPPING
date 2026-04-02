@@ -45,7 +45,8 @@ def safe_parse(text):
         raise ValueError("LLM output empty")
 
     t = text.strip()
-
+    
+    t = t.replace("{{", "{").replace("}}", "}")
     if t.startswith("```"):
         t = t.strip("`")
         if "\n" in t:
@@ -164,7 +165,7 @@ def search_link(query: str, max: int) -> List:
 
 tools = [brave_search_tool, ask_user, retrun_not_possible]
 
-model = ChatOllama(model="llama3.1:8b", temperature=0, base_url="http://127.0.0.1:11434")
+model = ChatOllama(model="qwen3.5:9b", temperature=0, base_url="http://127.0.0.1:11434")
 
 llm_with_tools = model.bind_tools(tools)
 

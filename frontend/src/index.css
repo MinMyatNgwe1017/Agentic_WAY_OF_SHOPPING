@@ -31,7 +31,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background-color: var(--bg-color);
-  color: color-contrast(var(--bg-color) vs white, black);
+  color: color-contrast(var(--bg-color) vs white);
 }
 
 h1 {

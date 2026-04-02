@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 
 .env
+node-v20.19.0-linux-x64
