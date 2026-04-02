@@ -86,7 +86,7 @@ export default function Chat() {
     setChatHistory((prev) => [...prev, { sender: "user", text: message }]);
 
     const currentMsg = message;
-    setMessage(""); // Clear input immediately for UX
+    setMessage("");
     setProducts([]);
     setLoading(true);
 
@@ -128,7 +128,6 @@ export default function Chat() {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", overflow: "hidden" }}>
 
-      {/* Header */}
       <Paper elevation={1} sx={{ p: 2, display: "flex", justifyContent: "space-between", alignItems: "center", borderRadius: 0, zIndex: 10, }}>
 
         <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -137,10 +136,8 @@ export default function Chat() {
         <Button size="small" variant="outlined" color="error" onClick={handleLogout}>Logout</Button>
       </Paper>
 
-      {/* Content Area */}
       <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
 
-        {/* LEFT: Product Results */}
         {hasResults && (
           <Box sx={{ flex: 1, p: 3, overflowY: "auto", borderRight: "1px solid #e0e0e0" }}>
             <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>Recommended for you</Typography>
@@ -153,14 +150,22 @@ export default function Chat() {
                     <Box sx={{ height: 180, bgcolor: "#eee", borderRadius: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>No Image</Box>
                   )}
                   <Typography variant="subtitle1" sx={{ fontWeight: 600, mt: 1 }}>{p.product_name}</Typography>
-                  <Button variant="contained" href={p.link} target="_blank" fullWidth sx={{ mt: "auto", textTransform: "none" }}>View Deal</Button>
+                  <Button
+                    variant="contained"
+                    href={p.link || "#"}
+                    target={p.link ? "_blank" : undefined}
+                    disabled={!p.link}
+                    fullWidth
+                    sx={{ mt: "auto", textTransform: "none" }}
+                  >
+                    View Deal
+                  </Button>
                 </Paper>
               ))}
             </Box>
           </Box>
         )}
 
-        {/* RIGHT: Chat - Dynamic width based on results */}
         <Box sx={{
           flex: hasResults ? "0 0 400px" : 1,
           display: "flex",
@@ -171,7 +176,6 @@ export default function Chat() {
           overflow: "hidden"
         }}>
 
-          {/* Scrollable Chat History */}
           <Box sx={{
             flex: 1,
             overflowY: "auto",
@@ -207,7 +211,6 @@ export default function Chat() {
             <div ref={chatEndRef} />
           </Box>
 
-          {/* Fixed Bottom Input */}
           <Divider />
           <Box component="form" onSubmit={handleSubmit} sx={{ p: 2, }}>
             <TextField
@@ -224,7 +227,7 @@ export default function Chat() {
                 }
               }}
               sx={{
-                "& .MuiOutlinedInput-root": { borderRadius: 3, bgcolor: "#bcbcbc" },
+                "& .MuiOutlinedInput-root": { borderRadius: 3, bgcolor: "#ffffff" },
                 mb: 1
               }}
             />

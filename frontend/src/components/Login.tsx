@@ -47,19 +47,19 @@ export default function Login() {
             <TextField
                 id="email"
                 label="Email"
-                variant="standard"
+                variant="outlined"
                 onChange={(e) => setEmail(e.target.value)}
                 fullWidth
-                color='primary'
+                sx={{ color: '#fff', backgroundColor: '#fff', }}
             />
             <TextField
                 id="password"
                 label="Password"
                 type="password"
-                variant="standard"
+                variant="outlined"
                 onChange={(e) => setPassword(e.target.value)}
                 fullWidth
-                color='primary'
+                sx={{ color: '#fff', backgroundColor: '#fff' }}
             />
 
             <Button variant="contained" onClick={handleSubmit}>Login</Button>

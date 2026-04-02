@@ -26,7 +26,6 @@ export default function Login() {
             }
         } catch (error: any) {
             console.error('Signup failed:', error);
-            alert(error?.response?.data?.detail || 'Signup failed');
         }
 
         setEmail('');
@@ -52,7 +51,7 @@ export default function Login() {
                 variant="standard"
                 onChange={(e) => setFullName(e.target.value)}
                 fullWidth
-                color='primary'
+                sx={{ color: '#fff', backgroundColor: '#fff', }}
             />
             <TextField
                 id="email"
@@ -60,7 +59,7 @@ export default function Login() {
                 variant="standard"
                 onChange={(e) => setEmail(e.target.value)}
                 fullWidth
-                color='primary'
+                sx={{ color: '#fff', backgroundColor: '#fff', }}
             />
             <TextField
                 id="password"
@@ -69,7 +68,7 @@ export default function Login() {
                 variant="standard"
                 onChange={(e) => setPassword(e.target.value)}
                 fullWidth
-                color='primary'
+                sx={{ color: '#fff', backgroundColor: '#fff' }}
             />
 
             <Button variant="contained" onClick={handleSubmit}>Sign up</Button>
