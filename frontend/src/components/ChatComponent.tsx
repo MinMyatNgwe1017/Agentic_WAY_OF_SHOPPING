@@ -13,6 +13,8 @@ type Product = {
   type?: string;
   message?: string;
   question?: string;
+  price?: number;
+  recom?: string;
 };
 
 type ChatMessage = {
@@ -25,7 +27,7 @@ export default function Chat() {
   const [products, setProducts] = useState<Product[]>([]);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
-
+  const [currentStatus, setCurrentStatus] = useState<string | null>(null);
   const navigate = useNavigate();
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -52,20 +54,21 @@ export default function Chat() {
 
           if (obj.status === "done") {
             setLoading(false);
-            continue;
+            setCurrentStatus(null);
+            return;
           }
 
           if (obj.status === "need_user") {
             setChatHistory((prev) => [...prev, { sender: "agent", text: obj.question || "Details please?" }]);
+            setCurrentStatus(null);
             setLoading(false);
             return;
           }
 
           if (obj.type === "status") {
-            setChatHistory((prev) => [...prev, { sender: "agent", text: obj.message || "Processing..." }]);
+            setCurrentStatus(obj.message || "Processing...");
             return;
           }
-
           if (obj.error) {
             setChatHistory((prev) => [...prev, { sender: "agent", text: obj.error! }]);
           } else {
@@ -124,12 +127,10 @@ export default function Chat() {
     localStorage.clear();
     navigate("/");
   };
-
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", overflow: "hidden" }}>
 
       <Paper elevation={1} sx={{ p: 2, display: "flex", justifyContent: "space-between", alignItems: "center", borderRadius: 0, zIndex: 10, }}>
-
         <Typography variant="body2" sx={{ fontWeight: 500 }}>
           {localStorage.getItem("fullname") || "User"}
         </Typography>
@@ -140,7 +141,9 @@ export default function Chat() {
 
         {hasResults && (
           <Box sx={{ flex: 1, p: 3, overflowY: "auto", borderRight: "1px solid #e0e0e0" }}>
-            <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>Recommended for you</Typography>
+            <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
+              Recommended for you
+            </Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 2 }}>
               {products.map((p, idx) => (
                 <Paper key={idx} variant="outlined" sx={{ p: 2, borderRadius: 2, display: "flex", flexDirection: "column", gap: 1 }}>
@@ -149,7 +152,21 @@ export default function Chat() {
                   ) : (
                     <Box sx={{ height: 180, bgcolor: "#eee", borderRadius: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>No Image</Box>
                   )}
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mt: 1 }}>{p.product_name}</Typography>
+
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mt: 1, lineHeight: 1.2 }}>
+                    {p.product_name}
+                  </Typography>
+
+                  <Typography variant="h6" color="primary.main" sx={{ fontWeight: 700 }}>
+                    ${p.price}
+                  </Typography>
+
+                  {p.recom && (
+                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic", mb: 1 }}>
+                      {p.recom}
+                    </Typography>
+                  )}
+
                   <Button
                     variant="contained"
                     href={p.link || "#"}
@@ -207,7 +224,39 @@ export default function Chat() {
                 </Box>
               </Box>
             ))}
-            {loading && <Typography variant="caption" sx={{ color: "#666", fontStyle: "italic", ml: 1 }}>AI is thinking...</Typography>}
+
+            {currentStatus && (
+              <Box sx={{ ml: 1, mb: 2 }}>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 1,
+                    bgcolor: "rgba(255, 255, 255, 0.05)",
+                    color: "#aaa",
+                    fontSize: "0.85rem",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 1,
+                    borderRadius: 2,
+                    border: "1px solid #444"
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 8, height: 8, bgcolor: "#1976d2", borderRadius: "50%",
+                      animation: "pulse 1.5s infinite"
+                    }}
+                  />
+                  {currentStatus}
+                </Paper>
+              </Box>
+            )}
+
+            {loading && !currentStatus && (
+              <Typography variant="caption" sx={{ color: "#666", fontStyle: "italic", ml: 1 }}>
+                AI is thinking...
+              </Typography>
+            )}
             <div ref={chatEndRef} />
           </Box>
 

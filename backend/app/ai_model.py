@@ -20,8 +20,8 @@ import ast
 from ddgs import DDGS
 from bs4 import BeautifulSoup
 import cloudscraper
-from web_scraping import web_scrap
-from prompts import extract_system_prompt, agent2_system_prompt,recommendation_prompt
+from .web_scraping import web_scrap
+from .prompts import extract_system_prompt, agent2_system_prompt,recommendation_prompt
 from sqlalchemy import create_engine
 import os 
 dotenv.load_dotenv("../../.env")
@@ -165,7 +165,7 @@ def search_link(query: str, max: int) -> List:
 
 tools = [brave_search_tool, ask_user, retrun_not_possible]
 
-model = ChatOllama(model="qwen3.6:27b", temperature=0, base_url="http://127.0.0.1:11434")
+model = ChatOllama(model="qwen3.5:9b", temperature=0, base_url="http://127.0.0.1:11434")
 
 llm_with_tools = model.bind_tools(tools)
 

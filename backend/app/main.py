@@ -2,8 +2,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
-from ai_model import stream_products
-from db import (
+from .ai_model import stream_products
+from .db import (
     init_db,
     create_user,
     verify_user,
