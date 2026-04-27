@@ -25,7 +25,6 @@ export default function Login() {
             }
         } catch (error: any) {
             console.error('Login failed:', error);
-            alert(error?.response?.data?.detail || 'Login failed');
         }
 
         setEmail('');
