@@ -21,7 +21,7 @@ from ddgs import DDGS
 from bs4 import BeautifulSoup
 import cloudscraper
 from web_scraping import web_scrap
-from prompts import extract_system_prompt, agent2_system_prompt
+from prompts import extract_system_prompt, agent2_system_prompt,recommendation_prompt
 from sqlalchemy import create_engine
 import os 
 dotenv.load_dotenv("../../.env")
@@ -165,7 +165,7 @@ def search_link(query: str, max: int) -> List:
 
 tools = [brave_search_tool, ask_user, retrun_not_possible]
 
-model = ChatOllama(model="qwen3.5:9b", temperature=0, base_url="http://127.0.0.1:11434")
+model = ChatOllama(model="qwen3.6:27b", temperature=0, base_url="http://127.0.0.1:11434")
 
 llm_with_tools = model.bind_tools(tools)
 
@@ -205,11 +205,22 @@ second_agent_prompttemplate = ChatPromptTemplate(
     ]
 )
 
+thrid_agent_template=ChatPromptTemplate(
+    [
+        ("system",recommendation_prompt),
+        MessagesPlaceholder("web_search")
+    ]
+)
+
 second_agent = second_agent_prompttemplate | second_agent_model
+
+thrid_agent_model=model.bind_tools([search_link])
+
+third_agent=thrid_agent_template|thrid_agent_model
 
 def stream_products(user_input, session_id):
 
-    global agent_1, llm_with_tools
+    global agent_1, llm_with_tools,third_agent
 
     history = get_session_history(session_id)
 
@@ -375,6 +386,32 @@ def stream_products(user_input, session_id):
             result = future.result()
 
             if result:
+                searching_result=[]
+
+                third_agent_response=third_agent.invoke(
+                    {"userinput":history.messages,"product_info":result,"web_search":searching_result}
+                )
+                while third_agent_response.tool_calls:
+                    searching_result.append(third_agent_response)
+                    for i in  third_agent_response.tool_calls:
+                        
+                        if i['name']=="brave_search_tool":
+                            searching_result.append(
+                                ToolMessage(
+                                    brave_search_tool.func(**i['args'],
+                                                           tool_call_id=i['id'])
+                                )
+                            )
+
+                    third_agent_response=third_agent.invoke(
+                        {"userinput":history.messages,"product_info":result,"history":searching_result}
+                    )
+                    
+                result['recom']=third_agent_response.content
+                print(result)
+                    
+                    
+                
                 yield result
     print("STREAM PRODUCTS FINISHED")
 
