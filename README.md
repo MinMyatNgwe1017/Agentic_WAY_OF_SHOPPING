@@ -142,7 +142,7 @@ Milestone 3: March 7, 2026 – Full testing and bug fixes completed, edge cases 
 
 ## Setup 
 
-**we strongly urge to run on samk ai sever if your gpu does not have enough gpu which is better   than RTX 3090 
+**we strongly urge to run on samk ai sever if you dont have  gpu which is better   than RTX 3090 
 we test our local machine which has RTX 4070 it took  around 30 mins to get first result
 while if we run on ai server it tokk around 5mins to get result**
 ## Backend Setup
@@ -205,6 +205,10 @@ Run the installation script:
 ```bash
 chmod +x install.sh
 ./install.sh
+```
+
+```bash
+ollama pull qwen3.5:9b
 ```
 
 ---
