@@ -142,36 +142,160 @@ Milestone 3: March 7, 2026 – Full testing and bug fixes completed, edge cases 
 
 ## Setup 
 
+**we strongly urge to run on samk ai sever if your gpu does not have enough gpu which is better   than RTX 3090 
+we test our local machine which has RTX 4070 it took  around 30 mins to get first result
+while if we run on ai server it tokk around 5mins to get result**
+## Backend Setup
+
+Go to the backend app folder:
+
+```bash
 cd backend/app
+```
+
+---
+
+## Windows Setup
+
+This project requires Ollama.
+
+Download Ollama for Windows here:
+
+https://www.ollama.com/download
+
+After installing Ollama, pull the model:
+
+```bash
+ollama pull qwen3.5:9b
+```
+
+Create and activate the virtual environment:
+
+```bash
+python -m venv .venv
+.\.venv\Scripts\activate
+```
+
+Install Python dependencies:
+
+```bash
+pip install -r .\requirements.txt
+```
+
+Install Playwright browsers and dependencies:
+
+```bash
+playwright install
+playwright install-deps
+playwright install firefox
+```
+
+---
+
+## Linux Setup
+
+Go to the backend app folder:
+
+```bash
+cd backend/app
+```
+
+Run the installation script:
+
+```bash
 chmod +x install.sh
 ./install.sh
+```
 
+---
+
+## Frontend Setup
+
+Go to the frontend folder:
+
+```bash
 cd ../../frontend
+```
+
+Install frontend dependencies:
+
+```bash
 npm install
+```
 
-For testing purposes, Qwen 3.5 9B is currently used.
-For better results, Qwen 3.6 35B is recommended.
+---
 
-During testing, the team encountered some issues when running the model on an RTX PRO 5000 48GB GPU. Since this is a newly released GPU, there may be compatibility conflicts with the Qwen model.
+## Model Information
 
-The recommended GPU is RTX 3090.
-If you are running the app on the AI server, server2 has this GPU available.
+For testing purposes, **Qwen 3.5 9B** is currently used.
 
-To change the model, update the variable named model in:
+For better results, **Qwen 3.6 35B** is recommended.
 
+During testing, the team encountered issues when running the model on an **RTX PRO 5000 48GB GPU**. Since this is a newly released GPU, there may be compatibility conflicts with the Qwen model.
+
+The recommended GPU is:
+
+```text
+RTX 3090
+```
+
+If you are running the app on the AI server, **server2** has this GPU available.
+
+To change the model, update the variable named `model` in:
+
+```text
 backend/app/main.py
+```
 
+---
 
-### running app
+## Running the App
 
+### Start the Backend
+
+From the backend app folder:
+
+```bash
 cd backend/app
 uvicorn main:app --reload
+```
 
-and with new terminal 
+By default, the backend runs on:
 
+```text
+http://127.0.0.1:8000
+```
+
+If you change the Uvicorn port, you must also update the backend URL in:
+
+```text
+frontend/src/services/api.ts
+```
+
+---
+
+### Start the Frontend
+
+Open a new terminal, then run:
+
+```bash
 cd frontend
 npm run dev
+```
 
+The frontend usually runs on:
+
+```text
+http://localhost:5173
+```
+
+or:
+
+```text
+http://localhost:5174
+```
+
+Check the terminal output to confirm the exact URL.
 
 License
 https://choosealicense.com/
