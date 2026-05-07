@@ -4,15 +4,18 @@ import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import React, { useState } from 'react';
 import { login } from '../services/api';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const navigate = useNavigate();
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+
         const loginData: LoginInput = { email, password };
+        console.log("Attempting to login with:", loginData);
 
         try {
             const response = await login(loginData);
@@ -47,6 +50,7 @@ export default function Login() {
                 id="email"
                 label="Email"
                 variant="outlined"
+                value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 fullWidth
                 sx={{ color: '#fff', backgroundColor: '#fff', }}
@@ -56,12 +60,19 @@ export default function Login() {
                 label="Password"
                 type="password"
                 variant="outlined"
+                value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 fullWidth
                 sx={{ color: '#fff', backgroundColor: '#fff' }}
             />
 
-            <Button variant="contained" onClick={handleSubmit}>Login</Button>
+            <Button variant="contained" onClick={handleSubmit} type="button">
+                Login
+            </Button>
+            
+            <Button component={Link} to="/signup" sx={{ mt: 2 }}>
+                DON'T HAVE AN ACCOUNT? CREATE ONE
+            </Button>
         </Stack>
     );
 }

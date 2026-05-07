@@ -4,16 +4,19 @@ import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import React, { useState } from 'react';
 import { creat_account } from '../services/api';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
-export default function Login() {
-    const [email, setEmail] = useState('');
+export default function SignUp() {
     const [fullname, setFullName] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const navigate = useNavigate();
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault(); 
+
         const signupData: SignUpInput = { fullname, email, password };
+        console.log("Sending to backend:", signupData); 
 
         try {
             const response = await creat_account(signupData);
@@ -49,6 +52,7 @@ export default function Login() {
                 id="name"
                 label="Full Name"
                 variant="standard"
+                value={fullname}
                 onChange={(e) => setFullName(e.target.value)}
                 fullWidth
                 sx={{ color: '#fff', backgroundColor: '#fff', }}
@@ -57,6 +61,7 @@ export default function Login() {
                 id="email"
                 label="Email"
                 variant="standard"
+                value={email} // <-- CRITICAL
                 onChange={(e) => setEmail(e.target.value)}
                 fullWidth
                 sx={{ color: '#fff', backgroundColor: '#fff', }}
@@ -66,12 +71,19 @@ export default function Login() {
                 label="Password"
                 type="password"
                 variant="standard"
+                value={password} 
                 onChange={(e) => setPassword(e.target.value)}
                 fullWidth
                 sx={{ color: '#fff', backgroundColor: '#fff' }}
             />
 
-            <Button variant="contained" onClick={handleSubmit}>Sign up</Button>
+            <Button variant="contained" onClick={handleSubmit} type="button">
+                Sign up
+            </Button>
+
+            <Button component={Link} to="/login" sx={{ mt: 2 }}>
+                ALREADY HAVE AN ACCOUNT? LOGIN
+            </Button>
         </Stack>
     );
 }

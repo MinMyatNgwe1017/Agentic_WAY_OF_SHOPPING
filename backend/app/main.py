@@ -2,8 +2,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
-from .ai_model import stream_products
-from .db import (
+from ai_model import stream_products
+from db import (
     init_db,
     create_user,
     verify_user,
@@ -29,8 +29,14 @@ async def startup_event():
 # (Sufiyan, this block connects the frontend with the back-end)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite default port
-    allow_credentials=True,
+allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174"
+
+    ],
+allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -69,15 +75,15 @@ class SignupInput(BaseModel):
 async def create_account(userdata: SignupInput):
     try:
         user_id = create_user(userdata.fullname, userdata.email, userdata.password)
-    except Exception:
-        raise HTTPException(status_code=409, detail="Email already exists")
-    return {
-        "message": "Account created succesfullly back",
-        "email": userdata.email,
-        "fullname": userdata.fullname,
-        "user_id": user_id,
-    }
-
+        return {
+            "message": "Account created successfully back",
+            "email": userdata.email,
+            "fullname": userdata.fullname,
+            "user_id": user_id,
+        }
+    except Exception as e:
+        print(f"CRITICAL ERROR IN SIGNUP: {repr(e)}")
+        raise HTTPException(status_code=400, detail=f"Real error: {str(e)}")
 
 @app.post("/agent_thinking")
 async def show_thinking(think: dict):

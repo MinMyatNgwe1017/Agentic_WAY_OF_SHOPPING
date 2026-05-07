@@ -31,7 +31,7 @@ nvm install node
 sudo rm -rf /usr/local/bin/node
 sudo rm -rf /usr/local/bin/npm
 sudo rm -rf /usr/local/lib/node_modules
-
+sudo apt-get install zstd
 curl -fsSL https://ollama.com/install.sh | sh
 
 # ollama serve
