@@ -61,7 +61,7 @@ export default function SignUp() {
                 id="email"
                 label="Email"
                 variant="standard"
-                value={email} // <-- CRITICAL
+                value={email} 
                 onChange={(e) => setEmail(e.target.value)}
                 fullWidth
                 sx={{ color: '#fff', backgroundColor: '#fff', }}
