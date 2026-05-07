@@ -70,11 +70,10 @@ The system then:
 
 Before running the project, make sure you have:
 
-- Python installed
-- Node.js and npm installed
+- Python installed (recommended: 3.10+)
+- Node.js and npm installed (recommended: Node 18+)
 - Ollama installed
 - A supported GPU for acceptable performance
-- Playwright browser dependencies installed
 
 For testing, **Qwen 3.5 9B** is currently used.
 
@@ -94,176 +93,115 @@ If you are running the app on the SAMK AI server, **server2** has this GPU avail
 
 ---
 
-## Installation
+## Run After Cloning (Windows 11)
 
-## Backend Setup
+These steps assume your laptop is clean and you already installed Python, Node.js, and Ollama.
 
-Go to the backend app folder:
+You must run **3 terminals**:
 
-```bash
-cd backend/app
+1. Ollama terminal
+2. Backend terminal
+3. Frontend terminal
+
+### 1. Clone and open the project
+
+```powershell
+git clone https://github.com/MinMyatNgwe1017/Agentic_WAY_OF_SHOPPING.git
+cd Agentic_WAY_OF_SHOPPING
 ```
 
----
+### 2. Backend setup (first time only)
 
-### Windows Setup
-
-Install Ollama for Windows:
-
-https://www.ollama.com/download
-
-Pull the model:
-
-```bash
-ollama pull qwen3.5:9b
-```
-
-Create a virtual environment:
-
-```bash
+```powershell
+cd backend\app
 python -m venv .venv
-```
-
-Activate the virtual environment:
-
-```bash
 .\.venv\Scripts\activate
-```
-
-Install Python dependencies:
-
-```bash
-pip install -r .\requirements.txt
-```
-
-Install Playwright:
-
-```bash
+pip install -r requirements.txt
 playwright install
 playwright install-deps
 playwright install firefox
 ```
 
----
+### 3. Ollama setup and run
 
-### Linux Setup
+Open a new terminal and run:
 
-Go to the backend app folder:
+```powershell
+ollama serve
 
-```bash
-cd backend/app
-```
-
-Run the install script:
-
-```bash
-chmod +x install.sh
-./install.sh
-```
-
-Pull the model:
-
-```bash
 ollama pull qwen3.5:9b
 ```
 
----
+Keep this terminal open while using the app.
 
-## Frontend Setup
+### 4. Start backend API
 
-From the backend folder, go to the frontend folder:
+In the backend terminal (where `.venv` is activated), run:
 
-```bash
-cd ../../frontend
-```
-
-Install frontend dependencies:
-
-```bash
-npm install
-```
-
----
-
-## Running the App
-
-### Start the Backend
-
-From the backend app folder:
-
-```bash
-cd backend/app
+```powershell
 uvicorn main:app --reload
 ```
 
-By default, the backend runs on:
+Backend should run at:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-If you change the Uvicorn port, update the frontend API URL in:
+Quick test in browser:
 
 ```text
-frontend/src/services/api.ts
+http://127.0.0.1:8000/
 ```
 
----
+Expected response:
 
-### Start the Frontend
+```json
+{ "message": "This is root", "version": "1.0.0" }
+```
 
-Open a new terminal and run:
+### 5. Start frontend
 
-```bash
-cd frontend
+Open another terminal and run:
+
+```powershell
+cd Agentic_WAY_OF_SHOPPING\frontend
+npm install
 npm run dev
 ```
 
-The frontend usually runs on:
+Open the URL shown in the terminal (usually `http://localhost:5173` or `http://localhost:5174`).
 
-```text
-http://localhost:5173
+### 6. If frontend cannot connect to backend
+
+Create a file at `frontend\.env`:
+
+```env
+VITE_API_URL=http://127.0.0.1:8000
 ```
 
-or:
+Then restart frontend:
 
-```text
-http://localhost:5174
+```powershell
+npm run dev
 ```
-
-Check the terminal output to confirm the exact frontend URL.
 
 ---
 
-## Changing the Model
+## Linux Notes
 
-To change the Ollama model, update the variable named `model` in:
-
-```text
-backend/app/main.py
-```
-
-Example:
-
-```python
-model = ChatOllama(
-    model="qwen3.5:9b",
-    temperature=0,
-    base_url="http://127.0.0.1:11434"
-)
-```
+A Linux install script exists at `backend/app/install.sh`, but it includes system-level Node.js removal/purge commands. Review it carefully before use.
 
 ---
 
 ## Usage
 
-1. Start the backend.
-2. Start the frontend.
-3. Open the frontend URL in your browser.
-4. Sign up or log in.
-5. Type a shopping request.
-6. Wait for the agent to search and return recommendations.
-7. View product results and open product links.
+1. Start Ollama, backend, and frontend.
+2. Open the frontend URL in your browser.
+3. Sign up or log in.
+4. Type a shopping request.
+5. Wait for the agent to search and return recommendations.
+6. View product results and open product links.
 
 Example input:
 
@@ -299,38 +237,38 @@ Link: Product URL
 
 ## Program Logic
 
-1. **Authenticate user**  
+1. **Authenticate user**
    The user logs in or creates an account.
 
-2. **Load user profile**  
+2. **Load user profile**
    The system loads saved user data from the database.
 
-3. **Receive user input**  
+3. **Receive user input**
    The user submits a product category and optional preferences.
 
-4. **Parse request**  
+4. **Parse request**
    The AI agent extracts key constraints such as budget, brand, color, and features.
 
-5. **Build search plan**  
+5. **Build search plan**
    The agent generates search queries.
 
-6. **Search the web**  
+6. **Search the web**
    The system collects product candidates from online sources.
 
-7. **Extract product data**  
+7. **Extract product data**
    The system extracts product name, price, image, link, and other useful details.
 
-8. **Filter results**  
+8. **Filter results**
    The system removes products that do not match hard constraints.
 
-9. **Rank recommendations**  
+9. **Rank recommendations**
    The agent ranks products based on user needs and preferences.
 
-10. **Return results**  
-   The frontend displays recommended products.
+10. **Return results**
+    The frontend displays recommended products.
 
-11. **Optional purchase flow**  
-   If we have enough time, the Buy button will show a final confirmation screen before completing a purchase workflow.
+11. **Optional purchase flow**
+    If we have enough time, the Buy button will show a final confirmation screen before completing a purchase workflow.
 
 ---
 
@@ -468,17 +406,13 @@ Expected response:
 
 ### Frontend is calling the wrong port
 
-Check:
+Check `frontend/.env`:
 
-```text
-frontend/src/services/api.ts
+```env
+VITE_API_URL=http://127.0.0.1:8000
 ```
 
-Make sure it points to the backend URL:
-
-```text
-http://127.0.0.1:8000
-```
+If missing, create it and restart frontend.
 
 ### Ollama model is slow
 
