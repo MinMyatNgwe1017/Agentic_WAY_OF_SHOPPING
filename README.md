@@ -69,6 +69,8 @@ _Describe the path our code takes from start to finish. Use a numbered list to s
 
 **Purchase confirmation**: If Buy is clicked, the system shows a final summary (item, price, shipping, address, payment method) and asks for confirmation.## 5. Team Responsibility Breakdown
 
+**Note (click buy will be implemented only if we have enough time)
+
 _How are we dividing the work? Each member should have a primary area of focus._
 
 - **Min Myat Ngwe**
@@ -137,6 +139,39 @@ Milestone 3: March 7, 2026 – Full testing and bug fixes completed, edge cases 
 - **Integration:** Have we tested if Member A's function actually works with Member B's function?
 - es — we will schedule integration tests twice per week (e.g., midweek + weekend) to confirm Member A’s functions work with Member B’s modules,
 - and we will keep a shared checklist of “working connections” (UI↔Backend, Backend↔DB, Backend↔Agent).
+
+## Setup 
+
+cd backend/app
+chmod +x install.sh
+./install.sh
+
+cd ../../frontend
+npm install
+
+For testing purposes, Qwen 3.5 9B is currently used.
+For better results, Qwen 3.6 35B is recommended.
+
+During testing, the team encountered some issues when running the model on an RTX PRO 5000 48GB GPU. Since this is a newly released GPU, there may be compatibility conflicts with the Qwen model.
+
+The recommended GPU is RTX 3090.
+If you are running the app on the AI server, server2 has this GPU available.
+
+To change the model, update the variable named model in:
+
+backend/app/main.py
+
+
+### running app
+
+cd backend/app
+uvicorn main:app --reload
+
+and with new terminal 
+
+cd frontend
+npm run dev
+
 
 License
 https://choosealicense.com/
