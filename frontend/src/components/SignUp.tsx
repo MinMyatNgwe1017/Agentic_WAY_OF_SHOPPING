@@ -81,9 +81,6 @@ export default function SignUp() {
                 Sign up
             </Button>
 
-            <Button component={Link} to="/login" sx={{ mt: 2 }}>
-                ALREADY HAVE AN ACCOUNT? LOGIN
-            </Button>
         </Stack>
     );
 }
