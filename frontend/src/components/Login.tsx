@@ -70,9 +70,6 @@ export default function Login() {
                 Login
             </Button>
             
-            <Button component={Link} to="/signup" sx={{ mt: 2 }}>
-                DON'T HAVE AN ACCOUNT? CREATE ONE
-            </Button>
         </Stack>
     );
 }
